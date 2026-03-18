@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messages App</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 3rem 1rem;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #38bdf8;
+  }
+  .header p {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-top: 0.4rem;
+  }
+
+  /* STATUS BADGE */
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #64748b;
+  }
+  .status-dot.online { background: #22c55e; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  /* INPUT AREA */
+  .input-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .input-card label {
+    display: block;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .input-row {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .input-row input {
+    flex: 1;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .input-row input:focus { border-color: #38bdf8; }
+  .input-row input::placeholder { color: #475569; }
+  .send-btn {
+    background: #38bdf8;
+    color: #0f172a;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .send-btn:hover { background: #7dd3fc; }
+  .send-btn:active { transform: scale(0.97); }
+  .send-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+  /* MESSAGES SECTION */
+  .messages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .messages-header h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .source-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 600;
+    display: none;
+  }
+  .source-badge.cache {
+    background: rgba(234,179,8,0.15);
+    color: #eab308;
+    border: 1px solid rgba(234,179,8,0.3);
+    display: inline-block;
+  }
+  .source-badge.database {
+    background: rgba(34,197,94,0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34,197,94,0.3);
+    display: inline-block;
+  }
+
+  /* MESSAGE LIST */
+  .messages-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .message-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+  .message-text { font-size: 0.97rem; color: #e2e8f0; line-height: 1.5; }
+  .message-time { font-size: 0.72rem; color: #475569; white-space: nowrap; margin-top: 0.2rem; }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #475569;
+  }
+  .empty .emoji { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .empty p { font-size: 0.9rem; }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: #475569;
+    font-size: 0.9rem;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: transform 0.3s ease;
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: #22c55e; color: #22c55e; }
+  .toast.error { border-color: #ef4444; color: #ef4444; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>📋 Messages App</h1>
+    <p>Powered by Node.js · PostgreSQL · Redis · Docker</p>
+  </div>
+
+  <!-- API STATUS -->
+  <div class="status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Connecting to API...</span>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-card">
+    <label>New Message</label>
+    <div class="input-row">
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="Type your message here..."
+        maxlength="200"
+      />
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="messages-header">
+    <h2>Messages</h2>
+    <span class="source-badge" id="sourceBadge"></span>
+  </div>
+
+  <div class="messages-list" id="messagesList">
+    <div class="loading">Loading messages...</div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:3000';
+
+  // ---- CHECK API STATUS ----
+  async function checkStatus() {
+    try {
+      const res = await fetch(`${API}/`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        document.getElementById('statusDot').classList.add('online');
+        document.getElementById('statusText').textContent = 'API is online';
+      }
+    } catch (e) {
+      document.getElementById('statusDot').style.background = '#ef4444';
+      document.getElementById('statusText').textContent = 'Cannot reach API — is Docker running?';
+    }
+  }
+
+  // ---- LOAD MESSAGES ----
+  async function loadMessages() {
+    try {
+      const res = await fetch(`${API}/messages`);
+      const data = await res.json();
+
+      // Show cache or database badge
+      const badge = document.getElementById('sourceBadge');
+      badge.textContent = data.source === 'cache' ? '⚡ From Cache' : '🗄️ From Database';
+      badge.className = `source-badge ${data.source}`;
+
+      const list = document.getElementById('messagesList');
+
+      if (data.data.length === 0) {
+        list.innerHTML = `
+          <div class="empty">
+            <div class="emoji">💬</div>
+            <p>No messages yet. Send the first one!</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = data.data.map(msg => `
+        <div class="message-card">
+          <div>
+            <div class="message-text">${escapeHtml(msg.text)}</div>
+            <div class="message-time">${formatTime(msg.created_at)}</div>
+          </div>
+        </div>
+      `).join('');
+
+    } catch (e) {
+      document.getElementById('messagesList').innerHTML = `
+        <div class="empty">
+          <div class="emoji">⚠️</div>
+          <p>Could not load messages. Make sure your Docker containers are running.</p>
+        </div>`;
+    }
+  }
+
+  // ---- SEND MESSAGE ----
+  async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const btn = document.getElementById('sendBtn');
+    const text = input.value.trim();
+
+    if (!text) {
+      showToast('Please type a message first!', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+      const res = await fetch(`${API}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (res.ok) {
+        input.value = '';
+        showToast('Message sent! ✅', 'success');
+        await loadMessages();
+      } else {
+        showToast('Failed to send message', 'error');
+      }
+    } catch (e) {
+      showToast('Cannot reach API — is Docker running?', 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Send';
+  }
+
+  // ---- SEND ON ENTER KEY ----
+  document.getElementById('messageInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  // ---- TOAST NOTIFICATION ----
+  function showToast(message, type = '') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast ${type} show`;
+    setTimeout(() => { toast.className = 'toast'; }, 3000);
+  }
+
+  // ---- HELPERS ----
+  function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+  }
+
+  // ---- INIT ----
+  checkStatus();
+  loadMessages();
+
+  // Auto-refresh messages every 10 seconds
+  setInterval(loadMessages, 10000);
+</script>
+
+</body>
+</html>
