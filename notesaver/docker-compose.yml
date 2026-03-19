@@ -1,0 +1,21 @@
+services:
+
+  api:
+    build:
+      context: ./api
+      network: host
+    ports:
+      - "5000:5000"
+    env_file: .env
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: postgres:15-alpine
+    env_file: .env
+    volumes:
+      - notes_data:/var/lib/postgresql/data
+
+volumes:
+  notes_data:
